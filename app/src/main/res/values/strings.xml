@@ -289,4 +289,13 @@
 	</string-array>
 
 	<string name="app_widget_description">Start recording widget</string>
+	<string name="title_activity_map">Map of Recordings</string>
+	<string name="action_view_all_on_map">View All on Map</string>
+	<string name="no_records_selected">No records selected.</string>
+	<string name="no_valid_records_selected_for_map">Selected items are not valid recordings or have no ID.</string>
+	<string name="selected_records_not_found_or_no_location">Selected records not found or have no location information.</string>
+	<string name="no_recordings_have_location">No recordings have location information.</string>
+	<string name="location_permission_required_for_map">Location permission is required to show records on map.</string>
+	<string name="location_permission_granted_tap_again">Location permission granted. Please tap the map button again.</string>
+	<string name="location_permission_denied_cannot_show_map">Location permission denied. Cannot show records on map.</string>
 </resources>

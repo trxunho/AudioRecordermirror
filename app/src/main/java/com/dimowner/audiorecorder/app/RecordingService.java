@@ -48,9 +48,12 @@ import com.dimowner.audiorecorder.audio.player.PlayerContractNew;
 import com.dimowner.audiorecorder.audio.recorder.RecorderContract;
 import com.dimowner.audiorecorder.data.FileRepository;
 import com.dimowner.audiorecorder.data.Prefs;
+import android.location.Location;
 import com.dimowner.audiorecorder.data.RecordDataSource;
 import com.dimowner.audiorecorder.data.database.LocalRepository;
 import com.dimowner.audiorecorder.data.database.Record;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.dimowner.audiorecorder.exception.AppException;
 import com.dimowner.audiorecorder.exception.ErrorParser;
 import com.dimowner.audiorecorder.exception.RecorderInitException;
@@ -96,6 +99,7 @@ public class RecordingService extends Service {
 	private ColorMap colorMap;
 	private boolean started = false;
 	private FileRepository fileRepository;
+	private FusedLocationProviderClient fusedLocationClient;
 
 	public RecordingService() {
 	}
@@ -118,6 +122,7 @@ public class RecordingService extends Service {
 
 		colorMap = ARApplication.getInjector().provideColorMap(getApplicationContext());
 		fileRepository = ARApplication.getInjector().provideFileRepository(getApplicationContext());
+		fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
 		appRecorderCallback = new AppRecorderCallback() {
 			boolean checkHasSpace = true;
@@ -414,37 +419,76 @@ public class RecordingService extends Service {
 		}
 	}
 
+	@SuppressLint("MissingPermission")
 	private void startRecording(String path) {
 		appRecorder.setRecorder(recorder);
 		try {
 			if (fileRepository.hasAvailableSpace(getApplicationContext())) {
-//				if (appRecorder.isPaused()) {
-//					appRecorder.resumeRecording();
-//				} else
 				if (!appRecorder.isRecording()) {
 					if (audioPlayer.isPlaying() || audioPlayer.isPaused()) {
 						audioPlayer.stop();
 					}
-					recordingsTasks.postRunnable(() -> {
-						try {
-							Record record = localRepository.insertEmptyFile(path);
-							prefs.setActiveRecord(record.getId());
-							recordDataSource.setRecordingRecord(record);
-							AndroidUtils.runOnUIThread(() -> appRecorder.startRecording(
-									path,
-									prefs.getSettingChannelCount(),
-									prefs.getSettingSampleRate(),
-									prefs.getSettingBitrate()
-							));
-						} catch (IOException | OutOfMemoryError | IllegalStateException | NullPointerException e) {
-							Timber.e(e);
-							showError(R.string.error_failed_to_start_recording);
-						}
-					});
+					final String finalPath = path;
+					fusedLocationClient.getLastLocation()
+						.addOnSuccessListener(location -> {
+							double currentLatitude = 0.0;
+							double currentLongitude = 0.0;
+							if (location != null) {
+								currentLatitude = location.getLatitude();
+								currentLongitude = location.getLongitude();
+								Timber.d("Location found: " + currentLatitude + ", " + currentLongitude);
+							} else {
+								Timber.w("Last location is null.");
+							}
+							final double finalLatitude = currentLatitude;
+							final double finalLongitude = currentLongitude;
+							recordingsTasks.postRunnable(() -> {
+								try {
+									Record record = localRepository.insertEmptyFile(finalPath, finalLatitude, finalLongitude);
+									if (record != null) {
+										prefs.setActiveRecord(record.getId());
+										recordDataSource.setRecordingRecord(record);
+										AndroidUtils.runOnUIThread(() -> appRecorder.startRecording(
+												finalPath,
+												prefs.getSettingChannelCount(),
+												prefs.getSettingSampleRate(),
+												prefs.getSettingBitrate()
+										));
+									} else {
+										Timber.e("Failed to insert record with location.");
+										showError(R.string.error_failed_to_start_recording);
+									}
+								} catch (IOException | OutOfMemoryError | IllegalStateException | NullPointerException e) {
+									Timber.e(e);
+									showError(R.string.error_failed_to_start_recording);
+								}
+							});
+						})
+						.addOnFailureListener(e -> {
+							Timber.e(e, "Failed to get location.");
+							recordingsTasks.postRunnable(() -> {
+								 try {
+									Record record = localRepository.insertEmptyFile(finalPath, 0.0, 0.0);
+									if (record != null) {
+										prefs.setActiveRecord(record.getId());
+										recordDataSource.setRecordingRecord(record);
+										AndroidUtils.runOnUIThread(() -> appRecorder.startRecording(
+												finalPath,
+												prefs.getSettingChannelCount(),
+												prefs.getSettingSampleRate(),
+												prefs.getSettingBitrate()
+										));
+									} else {
+										Timber.e("Failed to insert record without location after failure.");
+										showError(R.string.error_failed_to_start_recording);
+									}
+								} catch (IOException | OutOfMemoryError | IllegalStateException | NullPointerException ex) {
+									Timber.e(ex);
+									showError(R.string.error_failed_to_start_recording);
+								}
+							});
+						});
 				}
-//				else {
-//					appRecorder.pauseRecording();
-//				}
 			} else {
 				showError(R.string.error_no_available_space);
 				stopForegroundService();

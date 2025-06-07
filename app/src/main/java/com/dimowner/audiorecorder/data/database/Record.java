@@ -44,10 +44,12 @@ public class Record {
 	private final int[] amps;
 	private final byte[] data;
 	//TODO: Remove not needed data clusters.
+	private final double latitude;
+	private final double longitude;
 
 	public Record(int id, String name, long duration, long created, long added, long removed, String path,
 					  String format, long size, int sampleRate, int channelCount, int bitrate,
-					  boolean bookmark, boolean waveformProcessed, int[] amps) {
+					  boolean bookmark, boolean waveformProcessed, int[] amps, double latitude, double longitude) {
 		this.id = id;
 		this.name = name;
 		this.duration = duration;
@@ -64,12 +66,14 @@ public class Record {
 		this.waveformProcessed = waveformProcessed;
 		this.amps = amps;
 		this.data = int2byte(amps);
+		this.latitude = latitude;
+		this.longitude = longitude;
 //		this.data = AndroidUtils.int2byte(amps);
 	}
 
 	public Record(int id, String name, long duration, long created, long added, long removed, String path,
 					  String format, long size, int sampleRate, int channelCount, int bitrate,
-					  boolean bookmark, boolean waveformProcessed, byte[] amps) {
+					  boolean bookmark, boolean waveformProcessed, byte[] amps, double latitude, double longitude) {
 		this.id = id;
 		this.name = name;
 		this.duration = duration;
@@ -87,6 +91,8 @@ public class Record {
 		this.amps = byte2int(amps);
 //		this.amps = AndroidUtils.byte2int(amps);
 		this.data = amps;
+		this.latitude = latitude;
+		this.longitude = longitude;
 	}
 
 	public byte[] int2byte(int[] amps) {
@@ -221,6 +227,14 @@ public class Record {
 //		return sb.toString();
 //	}
 
+	public double getLatitude() {
+		return latitude;
+	}
+
+	public double getLongitude() {
+		return longitude;
+	}
+
 	@NonNull
 	@Override
 	public String toString() {
@@ -241,6 +255,8 @@ public class Record {
 				", waveformProcessed=" + waveformProcessed +
 				", amps=" + Arrays.toString(amps) +
 				", data=" + Arrays.toString(data) +
+				", latitude=" + latitude +
+				", longitude=" + longitude +
 				'}';
 	}
 }

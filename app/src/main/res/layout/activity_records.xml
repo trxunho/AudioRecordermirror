@@ -101,6 +101,15 @@
 				android:padding="@dimen/spacing_normal"
 				android:src="@drawable/ic_bookmark_bordered"/>
 
+		<ImageButton
+				android:id="@+id/btn_view_all_on_map"
+				android:layout_width="wrap_content"
+				android:layout_height="match_parent"
+				android:src="@drawable/ic_map_white"
+				android:background="@drawable/selectable_item_background_transparent"
+				android:paddingStart="@dimen/spacing_medium"
+				android:paddingEnd="@dimen/spacing_medium"
+				android:contentDescription="@string/action_view_all_on_map" />
 	</LinearLayout>
 
 	<LinearLayout
@@ -168,6 +177,14 @@
 				android:padding="@dimen/spacing_normal"
 				android:src="@drawable/ic_delete"/>
 
+		<ImageButton
+				android:id="@+id/btn_view_on_map_multi"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center_vertical"
+				android:background="@drawable/selectable_item_background_transparent"
+				android:padding="@dimen/spacing_medium"
+				android:src="@drawable/ic_map_white" />
 	</LinearLayout>
 
 	<View

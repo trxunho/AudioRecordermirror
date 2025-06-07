@@ -48,6 +48,9 @@ import com.dimowner.audiorecorder.app.DecodeService;
 import com.dimowner.audiorecorder.app.DownloadService;
 import com.dimowner.audiorecorder.app.PlaybackService;
 import com.dimowner.audiorecorder.app.info.ActivityInformation;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import com.dimowner.audiorecorder.app.info.RecordInfo;
 import com.dimowner.audiorecorder.app.trash.TrashActivity;
 import com.dimowner.audiorecorder.app.widget.SimpleWaveformView;
@@ -68,6 +71,13 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 
 	public static final int REQ_CODE_READ_EXTERNAL_STORAGE_PLAYBACK = 406;
 	public static final int REQ_CODE_READ_EXTERNAL_STORAGE_DOWNLOAD = 407;
+	private static final int REQUEST_CODE_LOCATION_PERMISSION_FOR_MAP = 123;
+
+	private static final int MAP_ACTION_NONE = 0;
+	private static final int MAP_ACTION_VIEW_ALL = 1;
+	private static final int MAP_ACTION_VIEW_SELECTED = 2;
+	private int pendingMapAction = MAP_ACTION_NONE;
+	private ArrayList<Integer> pendingSelectedRecordIds = null;
 
 	private RecyclerView recyclerView;
 	private LinearLayoutManager layoutManager;
@@ -97,6 +107,7 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 	private ImageButton btnShareMulti;
 	private ImageButton btnDeleteMulti;
 	private ImageButton btnDownloadMulti;
+	private ImageButton btnViewOnMapMulti;
 
 	private RecordsContract.UserActionsListener presenter;
 	private ColorMap colorMap;
@@ -159,9 +170,20 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 		btnShareMulti = findViewById(R.id.btn_share_multi);
 		btnDeleteMulti = findViewById(R.id.btn_delete_multi);
 		btnDownloadMulti = findViewById(R.id.btn_download_multi);
+		btnViewOnMapMulti = findViewById(R.id.btn_view_on_map_multi);
+		btnViewOnMapMulti.setOnClickListener(this);
 		btnShareMulti.setOnClickListener(this);
 		btnDeleteMulti.setOnClickListener(this);
 		btnDownloadMulti.setOnClickListener(this);
+
+		ImageButton btnViewAllOnMap = findViewById(R.id.btn_view_all_on_map);
+		btnViewAllOnMap.setOnClickListener(view -> {
+			pendingMapAction = MAP_ACTION_VIEW_ALL;
+			pendingSelectedRecordIds = null;
+			if (checkAndRequestLocationPermission()) {
+				launchMapActivityForAllRecords();
+			}
+		});
 
 		playProgress = findViewById(R.id.play_progress);
 		txtProgress = findViewById(R.id.txt_progress);
@@ -518,7 +540,53 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 					this.getResources().getQuantityString(R.plurals.download_selected_records, count, count),
 					v -> downloadSelectedRecords()
 			);
+		} else if (id == R.id.btn_view_on_map_multi) {
+			viewSelectedRecordsOnMap();
 		}
+	}
+
+	private void viewSelectedRecordsOnMap() {
+		List<Integer> selectedPositions = adapter.getSelected();
+		if (selectedPositions.isEmpty()) {
+			Toast.makeText(this, R.string.no_records_selected, Toast.LENGTH_SHORT).show();
+			return;
+		}
+		final ArrayList<Integer> recordIds = new ArrayList<>();
+		for (int position : selectedPositions) {
+			ListItem item = adapter.getItem(position);
+			if (item != null && item.getType() == ListItem.ITEM_TYPE_NORMAL) {
+				recordIds.add((int) item.getId());
+			}
+		}
+
+		if (recordIds.isEmpty()) {
+			 Toast.makeText(this, R.string.no_valid_records_selected_for_map, Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		pendingMapAction = MAP_ACTION_VIEW_SELECTED;
+		pendingSelectedRecordIds = recordIds;
+
+		if (!checkAndRequestLocationPermission()) {
+			Toast.makeText(this, R.string.location_permission_required_for_map, Toast.LENGTH_LONG).show();
+			return;
+		}
+		launchMapActivityForSelectedRecords(recordIds);
+	}
+
+	private void launchMapActivityForAllRecords() {
+		Intent intent = new Intent(RecordsActivity.this, com.dimowner.audiorecorder.app.map.MapActivity.class);
+		startActivity(intent);
+		pendingMapAction = MAP_ACTION_NONE;
+	}
+
+	private void launchMapActivityForSelectedRecords(ArrayList<Integer> recordIds) {
+		Intent intent = new Intent(RecordsActivity.this, com.dimowner.audiorecorder.app.map.MapActivity.class);
+		intent.putIntegerArrayListExtra("RECORD_IDS", recordIds);
+		startActivity(intent);
+		cancelMultiSelect(); // Optional
+		pendingMapAction = MAP_ACTION_NONE;
+		pendingSelectedRecordIds = null;
 	}
 
 	private void shareSelectedRecords() {
@@ -914,6 +982,18 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 		return checkStoragePermission(REQ_CODE_READ_EXTERNAL_STORAGE_DOWNLOAD);
 	}
 
+	private boolean checkAndRequestLocationPermission() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+				checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+				requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+						REQUEST_CODE_LOCATION_PERMISSION_FOR_MAP);
+				return false; // Permission not yet granted
+			}
+		}
+		return true; // Permission already granted or not required (older Android version)
+	}
+
 	private boolean checkStoragePermission(int requestCode) {
 		if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 			if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
@@ -931,7 +1011,22 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-		if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_PLAYBACK && grantResults.length > 0
+		if (requestCode == REQUEST_CODE_LOCATION_PERMISSION_FOR_MAP) {
+			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+				if (pendingMapAction == MAP_ACTION_VIEW_ALL) {
+					launchMapActivityForAllRecords();
+				} else if (pendingMapAction == MAP_ACTION_VIEW_SELECTED && pendingSelectedRecordIds != null) {
+					launchMapActivityForSelectedRecords(pendingSelectedRecordIds);
+				}
+				// Reset pending action
+				pendingMapAction = MAP_ACTION_NONE;
+				pendingSelectedRecordIds = null;
+			} else {
+				Toast.makeText(this, R.string.location_permission_denied_cannot_show_map, Toast.LENGTH_LONG).show();
+				pendingMapAction = MAP_ACTION_NONE; // Reset pending action
+				pendingSelectedRecordIds = null;
+			}
+		} else if (requestCode == REQ_CODE_READ_EXTERNAL_STORAGE_PLAYBACK && grantResults.length > 0
 				&& grantResults[0] == PackageManager.PERMISSION_GRANTED
 				&& grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 			presenter.startPlayback();
@@ -946,6 +1041,8 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 				);
 				downloadRecords.clear();
 			}
+		} else { // Ensure super is called if not handled by this specific logic
+			 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		}
 	}
 
@@ -961,4 +1058,21 @@ public class RecordsActivity extends Activity implements RecordsContract.View, V
 			presenter.loadRecordsPage(page);
 		}
 	}
+
+//	@Override
+//	public boolean onCreateOptionsMenu(Menu menu) {
+//		MenuInflater inflater = getMenuInflater();
+//		inflater.inflate(R.menu.menu_records, menu);
+//		return true;
+//	}
+//
+//	@Override
+//	public boolean onOptionsItemSelected(MenuItem item) {
+//		if (item.getItemId() == R.id.action_view_all_on_map) {
+//			Intent intent = new Intent(RecordsActivity.this, com.dimowner.audiorecorder.app.map.MapActivity.class);
+//			startActivity(intent);
+//			return true;
+//		}
+//		return super.onOptionsItemSelected(item);
+//	}
 }

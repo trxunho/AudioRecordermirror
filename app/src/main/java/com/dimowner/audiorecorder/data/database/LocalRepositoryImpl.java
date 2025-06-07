@@ -195,7 +195,7 @@ public class LocalRepositoryImpl implements LocalRepository {
 	}
 
 	@Override
-	public Record insertEmptyFile(String path) throws IOException {
+	public Record insertEmptyFile(String path, double latitude, double longitude) throws IOException {
 		if (path != null && !path.isEmpty()) {
 			File file = new File(path);
 			Record record = new Record(
@@ -213,7 +213,9 @@ public class LocalRepositoryImpl implements LocalRepository {
 					prefs.getSettingBitrate(),
 					false,
 					false,
-					new int[ARApplication.getLongWaveformSampleCount()]);
+					new int[ARApplication.getLongWaveformSampleCount()],
+					latitude,
+					longitude);
 			Record r = insertRecord(record);
 			if (r != null) {
 				return r;

@@ -81,6 +81,11 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 
 			db.setTransactionSuccessful();
 			db.endTransaction();
+		} else if (oldVersion < 4 && newVersion >= 4) {
+			db.execSQL("ALTER TABLE " + TABLE_RECORDS + " ADD COLUMN " + COLUMN_LATITUDE + " REAL;");
+			db.execSQL("ALTER TABLE " + TABLE_RECORDS + " ADD COLUMN " + COLUMN_LONGITUDE + " REAL;");
+			db.execSQL("ALTER TABLE " + TABLE_TRASH + " ADD COLUMN " + COLUMN_LATITUDE + " REAL;");
+			db.execSQL("ALTER TABLE " + TABLE_TRASH + " ADD COLUMN " + COLUMN_LONGITUDE + " REAL;");
 		}
 	}
 
@@ -100,6 +105,8 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 	static final String COLUMN_DATE_ADDED = "added";
 	static final String COLUMN_DATE_REMOVED = "removed";
 	static final String COLUMN_PATH = "path";
+	public static final String COLUMN_LATITUDE = "latitude";
+	public static final String COLUMN_LONGITUDE = "longitude";
 	/** Simplified array of audio record amplitudes that represents waveform. */
 	static final String COLUMN_DATA = "data";
 	static final String COLUMN_DATA_STR = "data_str";
@@ -125,6 +132,8 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 					+ COLUMN_SAMPLE_RATE + " INTEGER NOT NULL DEFAULT 0, "
 					+ COLUMN_CHANNEL_COUNT + " INTEGER NOT NULL DEFAULT 0, "
 					+ COLUMN_BITRATE + " INTEGER NOT NULL DEFAULT 0, "
+					+ COLUMN_LATITUDE + " REAL, "
+					+ COLUMN_LONGITUDE + " REAL, "
 					+ COLUMN_DATA + " BLOB NOT NULL, "
 					+ COLUMN_BOOKMARK + " INTEGER NOT NULL DEFAULT 0, "
 					+ COLUMN_WAVEFORM_PROCESSED + " INTEGER NOT NULL DEFAULT 0, "
@@ -145,6 +154,8 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 					+ COLUMN_SAMPLE_RATE + " INTEGER NOT NULL DEFAULT 0, "
 					+ COLUMN_CHANNEL_COUNT + " INTEGER NOT NULL DEFAULT 0, "
 					+ COLUMN_BITRATE + " INTEGER NOT NULL DEFAULT 0, "
+					+ COLUMN_LATITUDE + " REAL, "
+					+ COLUMN_LONGITUDE + " REAL, "
 					+ COLUMN_DATA + " BLOB NOT NULL, "
 					+ COLUMN_BOOKMARK + " INTEGER NOT NULL DEFAULT 0, "
 					+ COLUMN_WAVEFORM_PROCESSED + " INTEGER NOT NULL DEFAULT 0, "
