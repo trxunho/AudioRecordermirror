@@ -171,8 +171,11 @@ class DecodeService : Service() {
 										rec1.channelCount,
 										rec1.bitrate,
 										rec1.isBookmarked,
-										true,
-										data)
+										true, // waveformProcessed
+										data, // amps (IntArray)
+										0.0,  // latitude
+										0.0   // longitude
+								)
 								localRepository.updateRecord(decodedRecord)
 							}
 							decodeListener?.onFinishProcessing()
