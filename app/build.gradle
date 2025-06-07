@@ -5,6 +5,10 @@ apply plugin: 'kotlin-kapt'
 //apply plugin: 'com.google.firebase.crashlytics'
 //apply plugin: 'com.google.gms.google-services'
 
+kotlin {
+	jvmToolchain(17)
+}
+
 android {
 	namespace 'com.dimowner.audiorecorder'
 	compileSdkVersion 34
@@ -69,10 +73,10 @@ android {
 		}
 	}
 
-	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_17
-		targetCompatibility = JavaVersion.VERSION_17
-	}
+	// compileOptions {
+	//	 sourceCompatibility = JavaVersion.VERSION_17
+	//	 targetCompatibility = JavaVersion.VERSION_17
+	// }
 
 	lintOptions {
 		abortOnError false
