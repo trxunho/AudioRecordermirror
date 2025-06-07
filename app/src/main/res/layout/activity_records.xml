@@ -106,7 +106,7 @@
 				android:layout_width="wrap_content"
 				android:layout_height="match_parent"
 				android:src="@drawable/ic_map_white"
-				android:background="?attr/selectableItemBackgroundBorderless"
+				android:background="?android:attr/selectableItemBackgroundBorderless"
 				android:paddingStart="@dimen/spacing_medium"
 				android:paddingEnd="@dimen/spacing_medium"
 				android:contentDescription="@string/action_view_all_on_map" />
@@ -182,7 +182,7 @@
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:layout_gravity="center_vertical"
-				android:background="?attr/selectableItemBackgroundBorderless"
+				android:background="?android:attr/selectableItemBackgroundBorderless"
 				android:padding="@dimen/spacing_medium"
 				android:src="@drawable/ic_map_white" />
 	</LinearLayout>
